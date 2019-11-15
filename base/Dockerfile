@@ -12,8 +12,20 @@
 # From: Rick van Rein <rick@openfortress.nl>
 
 
-# ARPA2 base image is the moving target Debian Stable
-FROM debian:stable
+# ARPA2 base image is the latest Debian Stable that we have tested and is known
+# to fully work with all demos.
+#
+# As soon as a new release of Debian Stable comes out, please test and
+# coordinate this with the owners of the different demos so that we can plan an
+# upgrade moment of our own choosing without being strictly dictated by the release
+# schedule of Debian and the inevitable period of non-working demos right after
+# a new Debian release.
+#
+# From a security point of view: a new stable is released every two years and
+# each stable gets security patches for the most popular packages for five years
+# so that would give us plenty of time to keep tracking stable without ever
+# breaking our demos.
+FROM debian:stretch
 
 # Install required packages
 RUN \
