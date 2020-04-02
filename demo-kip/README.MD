@@ -38,21 +38,6 @@ docker run -it demo-kip
 You will find this file as `/KIP.MD`.
 
 
-## Preparing your Docker Container
-
-This domain is setup in DNS, with DNSSEC protection, and points to a fixed
-host name `kipsvc.unicorn.demo.arpa2.lab` port 9876, which must be present
-locally.
-
-So, edit `/etc/hosts` and extend the last line, with our local IPv4 address,
-with this name.  It will end up looking somewhat like this, where you
-should **note the funny .lab domain ending**:
-
-```
-172.17.0.93	193d5e2c77b1 kipsvc.unicorn.demo.arpa2.lab
-```
-
-
 ## Checking your Docker Container
 
 You should find the domain in an environment variable already:
@@ -87,7 +72,7 @@ PING 193d5e2c77b1 (172.17.0.93) 56(84) bytes of data.
 To run this demo, first start the KIP Service but **replace the IP address**:
 
 ```
-kipd 172.17.0.93 9876 /usr/local/src/kip.git/test/bin/unicorn.keytab 1 &
+kipd 0.0.0.0 9876 /usr/local/src/kip.git/test/bin/unicorn.keytab 1 &
 ```
 
 
