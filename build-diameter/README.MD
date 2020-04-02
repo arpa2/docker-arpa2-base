@@ -42,7 +42,7 @@ in C, not C++ or Erlang.
 
 Terminal 1
 ```
-docker run --rm --name diameter -it build-diameter
+docker run --rm --name diameter --mount type=bind,source="$(pwd)/build-diameter/usr/local/src/kip.git,target=/usr/local/src/kip.git -it build-diameter
 freeDiameterd -dd -c /usr/local/src/kip.git/build/test/bin/fdserver.conf
 ```
 
