@@ -34,4 +34,5 @@ ADD README.MD /KIP.MD
 
 ENV KIP_REALM=unicorn.demo.arpa2.org
 
+RUN echo '. /root/setup-volume.sh' >> /root/.bashrc
 CMD ["bash"]

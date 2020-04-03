@@ -42,11 +42,13 @@ in C, not C++ or Erlang.
 
 Terminal 1
 ```
-docker run --rm --name diameter --mount type=bind,source="$(pwd)"/usr/local/src/kip.git,target=/usr/local/src/kip.git --hostname kipsvc.unicorn.demo.arpa2.lab -it build-diameter
+cd build-diameter
+mkdir -p kip.git; docker run --rm --name diameter --mount type=bind,source="$(pwd)"/kip.git,target=/usr/local/src/kip.git --hostname kipsvc.unicorn.demo.arpa2.lab -it build-diameter
 kipd 0.0.0.0 9876 /usr/local/src/kip.git/test/bin/unicorn.keytab 1
 ```
 Terminal 2
 ```
+docker exec -it diameter bash
 freeDiameterd -dd -c /usr/local/src/kip.git/build/test/bin/fdserver.conf
 ```
 
