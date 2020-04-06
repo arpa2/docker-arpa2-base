@@ -24,11 +24,7 @@ RUN cd /usr/local/src ; git clone https://gitlab.com/arpa2/libarpa2common.git &&
     ldconfig
 
 # Build Apache modules
-RUN mkdir /usr/local/src/modules
-COPY mod_arpa2_tlspool  /usr/local/src/modules/arpa2_tlspool
-COPY mod_arpa2_aclr     /usr/local/src/modules/arpa2_aclr
-COPY mod_arpa2_userdir  /usr/local/src/modules/arpa2_userdir
-COPY mod_arpa2_sasl     /usr/local/src/modules/arpa2_sasl
+COPY modules  /usr/local/src/modules
 
 # Copy apache resources
 # HTML files
