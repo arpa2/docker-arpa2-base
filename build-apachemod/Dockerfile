@@ -24,10 +24,11 @@ RUN cd /usr/local/src ; git clone https://gitlab.com/arpa2/libarpa2common.git &&
     ldconfig
 
 # Build Apache modules
-COPY mod_arpa2_tlspool  /usr/local/src/mod_arpa2_tlspool
-COPY mod_arpa2_aclr     /usr/local/src/mod_arpa2_aclr
-COPY mod_arpa2_userdir  /usr/local/src/mod_arpa2_userdir
-COPY mod_arpa2_sasl     /usr/local/src/mod_arpa2_sasl
+RUN mkdir /usr/local/src/modules
+COPY mod_arpa2_tlspool  /usr/local/src/modules/arpa2_tlspool
+COPY mod_arpa2_aclr     /usr/local/src/modules/arpa2_aclr
+COPY mod_arpa2_userdir  /usr/local/src/modules/arpa2_userdir
+COPY mod_arpa2_sasl     /usr/local/src/modules/arpa2_sasl
 
 # Copy apache resources
 # HTML files
@@ -35,12 +36,12 @@ COPY /var/www/html /var/www/html
 # configuration files
 COPY /etc/apache2 /etc/apache2
 
-RUN cd /usr/local/src/mod_arpa2_userdir && apxs -i -a -c mod_arpa2_userdir.c
-RUN cd /usr/local/src/mod_arpa2_aclr    && apxs -i -a -c mod_arpa2_aclr.c \
+RUN cd /usr/local/src/modules/arpa2_userdir && apxs -i -a -c mod_arpa2_userdir.c
+RUN cd /usr/local/src/modules/arpa2_aclr    && apxs -i -a -c mod_arpa2_aclr.c \
                                                 -larpa2aclr
-RUN cd /usr/local/src/mod_arpa2_tlspool && apxs -i -a -c mod_arpa2_tlspool.c \
+RUN cd /usr/local/src/modules/arpa2_tlspool && apxs -i -a -c mod_arpa2_tlspool.c \
                                                 -ltlspool
-RUN cd /usr/local/src/mod_arpa2_sasl && apxs -i -a -c mod_arpa2_sasl.c \
+RUN cd /usr/local/src/modules/arpa2_sasl && apxs -i -a -c mod_arpa2_sasl.c \
                                                 -lsasl2 -lpcre
 
 # Define default command
