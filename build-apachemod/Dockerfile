@@ -23,22 +23,13 @@ RUN cd /usr/local/src ; git clone https://gitlab.com/arpa2/libarpa2common.git &&
     make install && \
     ldconfig
 
-# Build Apache modules
-COPY modules  /usr/local/src/modules
+COPY setup-volume.sh /root
 
 # Copy apache resources
 # HTML files
 COPY /var/www/html /var/www/html
 # configuration files
 COPY /etc/apache2 /etc/apache2
-
-RUN cd /usr/local/src/modules/arpa2_userdir && apxs -i -a -c mod_arpa2_userdir.c
-RUN cd /usr/local/src/modules/arpa2_aclr    && apxs -i -a -c mod_arpa2_aclr.c \
-                                                -larpa2aclr
-RUN cd /usr/local/src/modules/arpa2_tlspool && apxs -i -a -c mod_arpa2_tlspool.c \
-                                                -ltlspool
-RUN cd /usr/local/src/modules/arpa2_sasl && apxs -i -a -c mod_arpa2_sasl.c \
-                                                -lsasl2 -lpcre
 
 # Define default command
 CMD ["/bin/bash"]

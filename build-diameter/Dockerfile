@@ -11,7 +11,7 @@
 FROM arpa2/build-bin
 
 RUN apt-get update && \
-    apt-get install -y libssl-dev libunbound-dev python3-setuptools python3-dev freediameter libfreediameter-dev
+    apt-get install -y libssl-dev libunbound-dev python3-setuptools python3-dev freediameter libfreediameter-dev libpcre3-dev apache2-dev apache2-utils apache2 sasl2-bin firefox-esr libjson-c-dev
 RUN python3 /usr/lib/python3/dist-packages/easy_install.py six pyparsing asn1ate
 
 # Quick-DER
@@ -27,6 +27,12 @@ RUN cd /usr/local/src ; git clone -b quick-derdump --single-branch \
 		https://github.com/vanrein/hexio hexio.git
 RUN cd /usr/local/src/hexio.git ; make hexin hexout ; install hexin hexout /usr/local/bin
 RUN cp /usr/local/src/hexio.git/README.MD /HEXIO.MD
+
+# Copy apache resources
+# HTML files
+COPY /var/www/html /var/www/html
+# configuration files
+COPY /etc/apache2 /etc/apache2
 
 COPY setup-volume.sh /root
 

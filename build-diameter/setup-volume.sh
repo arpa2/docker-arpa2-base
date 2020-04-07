@@ -16,4 +16,9 @@ if [ $$ == 1 ]; then
 	cp $DIR/test/bin/root.key /etc/unbound/root.key
 	cp $DIR/build/src/kip  /usr/local/bin/kip
 	cp $DIR/build/src/kipd /usr/local/bin/kipd
+	# apache module
+	cd $DIR/contrib/apache-modules/arpa2_sxover && apxs -i -a -c mod_arpa2_sxover.c -lsasl2 -lpcre
+	# browser plugin
+	# Setup the native messaging plugin; you will need to set it up yourself
+	mkdir -p ~/.mozilla/native-messaging-hosts && cat $DIR/contrib/browser-plugin/sasl.json | sed 's/@@NATIVE_DIR@@/\/usr\/local\/src\/kip.git/' > ~/.mozilla/native-messaging-hosts/sasl.json
 fi
