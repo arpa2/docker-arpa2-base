@@ -4,10 +4,10 @@ DIR="/usr/local/src/kip.git"
 if [ $$ == 1 ]; then
 	if [ ! -d "$DIR"/.git ]; then
 		rm -r $DIR/*
-		git clone -b sxover-diameter https://gitlab.com/arpa2/kip $DIR
+		git clone -b sxover-diameter-new https://gitlab.com/arpa2/kip $DIR
 		mkdir $DIR/build
 		cd $DIR/build
-		cmake -DDEBUG:BOOL=ON ..
+		cmake -DDEBUG:BOOL=OFF ..
 		make
 		#cd $DIR/build ; ctest
 	fi
