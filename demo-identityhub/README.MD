@@ -31,6 +31,70 @@ There are many things open for tinkering:
   * Improving the shells in any way we like
   * Start using the `cmdparser` package in shells
 
+Once the image runs, you can ask it for the data that was initially
+added for user John, using plain OpenLDAP search:
+
+```
+shell$ ldapsearch \
+	-H ldapi://%2ftmp%2fldap-socket \
+	-Y EXTERNAL \
+	-b associatedDomain=example.com,ou=IdentityHub,o=arpa2.net,ou=InternetWide
+...
+# john, example.com, IdentityHub, arpa2.net, InternetWide
+dn: uid=john,associatedDomain=example.com,ou=IdentityHub,o=arpa2.net,ou=Intern
+ etWide
+uid: john
+objectClass: inetOrgPerson
+objectClass: lifecycleObject
+cn: John Doe
+sn: Doe
+seeAlso: uid=jojo
+lifecycleState: humanfate . baby toddler child puber mature senile
+```
+
+As you can see, there is an `objectClass: lifecycleObject` and, as permitted by its
+schema, a `lifecycleState` attribute (there could be multiple).
+
+We can also zoom in on all those objects under a domain.  This is especially
+useful with SyncRepl (perhaps through SteamWorks Pulley) to subscribe to any
+new attributes, or old ones being removed.  This is what the LifeCycle backend
+is meant for -- to trigger scripts when such changes occur.
+
+```
+shell$ ldapsearch \
+	-H ldapi://%2ftmp%2fldap-socket \
+	-Y EXTERNAL \
+	-b associatedDomain=example.com,ou=IdentityHub,o=arpa2.net,ou=InternetWide \
+	'(&(objectClass=lifecycleObject)(lifecycleState=*))' \
+	lifecycleState
+...
+# john, example.com, IdentityHub, arpa2.net, InternetWide
+dn: uid=john,associatedDomain=example.com,ou=IdentityHub,o=arpa2.net,ou=Intern
+ etWide
+lifecycleState: humanfate . baby toddler child puber mature senile
+```
+
+This is precisely the input expected by the Pulley backend library.  To query
+such objects and deliver them to a supportive backend, we might use
+PulleyScript like this:
+
+```
+# Retrieve from the LDAP root ("world") all the IdentityHub entries
+# of lifecycleObject class with at least one lifecycleState attribute
+#
+ObjectClass:"lifecycleObject" + LifecycleState:lcs, @dn, Uid=user, AssociatedDomain=zone, OU="IdentityHub", O="arpa2.org", OU="InternetWide" <- world
+
+# Filter out only attributes for the humanfate life cycle
+#
+#MAYNOTWORK# (lifecycleState=humanfate *)
+
+# Deliver those attributes along with their object DN to the
+# Pulley backend for lifecycle handling.  Invoke a script to
+# handle additions or removals.
+#
+dn,lcs -> lifecycle (humanfate="/opt/life/bin/humanfate.sh")
+```
+
 
 ## Deploy the Image
 

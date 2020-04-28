@@ -1,0 +1,130 @@
+# Definitions of OBJECT CLASS and ATTRIBUTE TYPE for the
+# ARPA2 Helm, which is a context in which initial access
+# to online resources is granted, based on authentication
+# bootstrapping.
+#
+# This rests on the idea of a HAAN Identity, where HAAN is
+# short for Helm Arbitrary Access node; the idea of allowing
+# a remote server to provide an identity that serves as an
+# alias to local identities.  Using multiple of these remote
+# identities implements fallback scenarios.  Validation is
+# possible with SASL over Diameter, using GS2-SXOVER-PLUS
+# to protect the exchange; the local node is "just" the
+# foreign server that happens to offer the Helm at which
+# the online resources can be controlled.
+#
+# Currently allocated as ARPA2-Experimental-Helm under
+# 1.3.6.1.4.1.44469.666.389.5
+#
+# From: Rick van Rein <rick@openfortress.nl>
+
+
+
+
+##
+## HELM ATTRIBUTE TYPES AND OBJECT CLASSES
+##
+
+
+# The helmIdentity attribute identifies a user@idp.realm
+# that may be used as alternative authentication to the
+# current node.  The idea is to immediately rewrite the
+# helmIdentity to the current node's normal identity,
+# also because that allows comparison; there can be any
+# number of helmIdentity values for a node.
+#
+# The user@domain.name form MAY be followed with a
+# space and a label for display in user interactions.
+# Such a label has no formal purpose or status and may
+# not even be unique.  Note that the entire field is
+# subject to the IA5String syntax, so expect no UTF-8.
+#
+# This is most useful when the current node represents
+# an online resource of some kind.  Note that nothing
+# about this is specific to LDAP, the same idea can
+# easily be incorporated into an SQL database, but the
+# lack of schema standardisation makes it a local
+# extension there.
+#
+attributetype ( 1.3.6.1.4.1.44469.666.389.5.1
+	NAME 'helmIdentity'
+	DESC 'An alternative identity for ownership of an object.  Many are permitted and enable recover/fallback authentication.  The identity assumes support for Realm Crossover.  SASL mechanism GS2-SXOVER-PLUS to a Diameter backend MUST be supported; Kerberos with KXOVER also MAY be supported.'
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+
+# The helmCanonical attribute provides a canonical identity
+# for the containing object.  Any helmIdentity values should
+# be rewritten to this value before certain operations, such
+# as comparisons.  Without this optional attribute, there may
+# still be a canonical identity, but it would be derived from
+# the object's DN and attributes in an application-specific
+# manner.
+#
+# The helmCanonical form is not meant for login, and it does
+# not bear a label.  Its syntax is specific to the application
+# that defined it, and may depend on the objectClass and/or
+# helmType fields.
+#
+attributetype ( 1.3.6.1.4.1.44469.666.389.5.2
+	NAME 'helmCanonical'
+	DESC 'Canonical identity for the contained object, possibly under interpretation of a helmType.  Presentable to the user to define the resource, and may avoid application-specific logic for forming one.  This is not a login identity, because no internal structure is defined that warrants generic interpretation.'
+	SINGLE-VALUE
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+
+# The helmType attribute may be superfluous in light of
+# the objectClass attribute.  It may however represent
+# application-specific considerations, such as variants
+# to the objectClass.  For this reason, applications are
+# free to define a helmType and decide how these relate
+# to objectClass attributes.
+#
+attributetype (1.3.6.1.4.1.44469.666.389.5.3
+	NAME 'helmType'
+	DESC 'Application-specific object typing information, possibly in addition to, or instead of, what the objectClass attributes are saying.  Note that the objectClass implies structure, and is therefore semantically richer and preferred as a default.  Where local variants are required however, the helmType may help out.'
+	SINGLE-VALUE
+	EQUALITY caseIgnoreIA5Match
+	SUBSTR caseIgnoreIA5SubstringsMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+
+# The helmOnlineResource represents an online resource
+# (such as a domain name, server, communication address)
+# whose ownership can be managed through the ARPA2 Helm;
+# application-specific type information may be provided
+# in a separate helmType attribute if objectClass is not
+# sufficient for application purposes.
+#
+# ARPA2 Helm is just a list of online resources with some
+# controls to manipulate them by anyone presenting one of
+# the helmIdentity settings in this object.  The list can
+# be found by finding all helmOnlineResource objects
+# that have an helmIdentity matching an authenticated
+# user (possibly from another realm).
+#
+# Very often, a resource carries a canonical identity,
+# and the helmOnlineResource would be mapped to that
+# identity.  This may follow from an attribute or, if
+# that is absent, from the DN of the object under
+# application-specific interpretation.
+#
+# In everyday use, it is not assumed that helmIdentity
+# is used to access a helmOnlineResource, though it
+# may actually work well, especially with local supply
+# of the identity.  It is mostly intended as a fallback
+# or recovery option.  Many identities are supported to
+# facilitate distributing these identities to others,
+# ranging from friends, through collegues, to notary
+# officials.  This offers an option when current owners
+# of an online resource suddenly fall off the net.
+#
+objectclass ( 1.3.6.1.4.1.44469.666.389.5.9
+	NAME 'helmOnlineResource'
+	DESC 'One online resource represented in an LDAP object.  This is the metadata part, the actual data is in an object store.'
+	AUXILIARY
+	MAY ( helmType $ helmCanonical $ helmIdentity ) )
+
