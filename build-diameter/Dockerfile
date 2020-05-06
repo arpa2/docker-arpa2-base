@@ -15,7 +15,7 @@ RUN apt-get update && \
 RUN python3 /usr/lib/python3/dist-packages/easy_install.py six pyparsing asn1ate
 
 # Quick-DER
-RUN git clone https://github.com/vanrein/quick-der /usr/local/src/quick-der.git
+RUN git clone https://gitlab.com/arpa2/quick-der/ /usr/local/src/quick-der.git
 RUN mkdir /usr/local/src/quick-der.git/build ; cd /usr/local/src/quick-der.git/build ; cmake -DDEBUG:BOOL=OFF ..	
 RUN make -C /usr/local/src/quick-der.git/build all install	
 RUN python /usr/local/src/quick-der.git/setup.py install	
