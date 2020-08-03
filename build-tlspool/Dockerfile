@@ -27,7 +27,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install dependencies
 # libgnutls30 is present without a -dev for it?
-RUN apt-get install -y libdb5.3-dev softhsm2 libgnutls28-dev gnutls-bin libldns-dev libunbound-dev libpython3-dev swig ppp
+RUN apt-get update && apt-get install -y libdb5.3-dev softhsm2 libgnutls28-dev gnutls-bin libldns-dev libunbound-dev libpython3-dev swig ppp
 #DROPHSM# RUN apt-get install -y libdb5.3-dev libgnutls28-dev gnutls-bin libldns-dev libunbound-dev libpython3-dev swig ppp
 
 # Note: We install ppp for the chat(8) man page

@@ -1,0 +1,5 @@
+# realm			selector		rights	resource				instance
+trucktyres.example	@worldmaster.example	RWD	Truck-Tyre-Stock-XXXXXXXXXXXXXXXXXXX	/api/tyres
+trucktyres.example	@worldmaster.example	CRW	Truck-Tyre-Stock-XXXXXXXXXXXXXXXXXXX	/api/mountings
+trucktyres.example	admin@worldmaster.example	CRWD	Truck-Tyre-Stock-XXXXXXXXXXXXXXXXXXX	/api/mountings
+trucktyres.example	@fineyear.example	C	Truck-Tyre-Stock-XXXXXXXXXXXXXXXXXXX	/api/tyres

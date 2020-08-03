@@ -1,0 +1,347 @@
+#!/usr/bin/env node
+
+'use strict';
+
+/*
+ * Application that serves a CRUD interface on a directory that controls json files in collections.
+ * Supported urls:
+ *   POST   /api/:collection/:filename
+ *   GET    /api/:collection/:filename
+ *   PUT    /api/:collection/:filename
+ *   DELETE /api/:collection/:filename
+ *
+ * If the JSON payload contains an "_id" key then the following request is also supported:
+ *   POST   /api/:collection
+ */
+
+const fs = require('fs');
+const http = require('http');
+const path = require('path');
+
+const APIPREFIX = '/api';
+const JSONEXT = '.json';
+const MAXOBJSIZE = 1024 * 1024 // 1 MB
+const HOST = '127.0.0.1';
+const PORT = 8080;
+
+function readBody(req, maxsize, cb) {
+	// collect payload
+	let data = '';
+
+	req.setEncoding('utf8');
+	req.on('readable', () => {
+		if (data.length > MAXOBJSIZE) {
+			req.removeListener('readable', this);
+			return;
+		}
+
+		let tmp;
+		while (tmp = req.read()) {
+			data += tmp;
+			if (data.length > maxsize) {
+				req.removeListener('readable', this);
+				let err = new Error(); // Payload Too Large
+				err.httpStatusCode = 413;
+				cb(err);
+				return;
+			}
+		}
+	});
+
+	req.once('end', () => {
+		if (!req.complete) {
+			let err = new Error('request incomplete');
+			err.httpStatusCode = 400; // Bad Request
+			cb(err);
+			return;
+		}
+
+		cb(null, data);
+	});
+}
+
+/*
+ * Returns true if the filename is valid and contains no directory components or false otherwise.
+ */
+function validFilename(filename) {
+	if (typeof filename !== 'string' ||
+	    filename.length < 1 ||
+	    filename.length > 255 ||
+	    filename === '.' ||
+	    filename === '..' ||
+	    filename.includes('/') ||
+	    filename.includes('\\') || // escape or windows path component separator
+	    /[\x00-\x1f\x7f]/.test(filename)) { // no ASCII control characters
+		return false;
+	}
+
+	return true;
+}
+
+const USAGE = path.basename(process.argv[1]) + ' datadir'
+
+if (process.argv.length < 3 || process.argv.length > 3) {
+	process.stderr.write(`${USAGE}\n`);
+	process.exit(1);
+}
+
+let datapath = process.argv[2];
+
+let stats;
+let isDir = false;
+
+try {
+	stats = fs.statSync(datapath);
+	isDir = stats.isDirectory();
+} catch(err) {
+	if (err.code !== 'ENOENT')
+		throw err;
+}
+
+if (!isDir) {
+	process.stderr.write(`${datapath} is not a directory\n`);
+	process.exit(1);
+}
+
+// ensure a trailing slash
+if (datapath[datapath.length - 1] !== '/')
+	datapath += '/';
+
+const server = http.createServer();
+
+server.on('listening', () => {
+	console.log(`serving ${datapath} on ${HOST}:${PORT}`);
+});
+
+server.on('request', (req, res) => {
+	switch (req.method) {
+	case 'GET':
+	case 'POST':
+	case 'PUT':
+	case 'DELETE':
+		break;
+	default:
+		res.statusCode = 405; // Method Not Allowed
+		res.setHeader('Allow', 'GET, POST, PUT, DELETE');
+		res.end();
+		return;
+	}
+
+	/*
+	 * Expect url to be of the form: APIPREFIX/collection/[object].
+	 *
+	 * We should arrive at the APIPREFIX by one call to dirname if there is no file name in the
+	 * url, or two if there is a file name.
+	 */
+
+	let collection = '';
+	let reqFilename = '';
+	let ppath;
+
+	ppath = path.dirname(req.url);
+	if (ppath === APIPREFIX) {
+		collection = path.basename(req.url);
+	} else {
+		// there must be exactly one extra component for the filename
+		reqFilename = path.basename(req.url, JSONEXT);
+		ppath = path.dirname(req.url);
+		collection = path.basename(ppath);
+		ppath = path.dirname(ppath);
+		if (ppath !== APIPREFIX) {
+			console.log('no collection in url');
+			res.statusCode = 403;
+			res.end();
+			return;
+		}
+	}
+
+	if (!validFilename(collection)) {
+		res.statusCode = 400;
+		res.setHeader('Content-Type', 'plain/text');
+		res.end('error: no valid collection name in url');
+		return;
+	}
+
+	if (reqFilename && !validFilename(reqFilename)) {
+		res.statusCode = 400;
+		res.setHeader('Content-Type', 'plain/text');
+		res.end('error: no valid filename in url');
+		return;
+	}
+
+	// ensure a trailing slash
+	let collectionDir = collection + '/';
+
+	if (req.method === 'POST' || req.method === 'PUT') {
+		if (req.headers['content-type'] !== 'application/json') {
+			res.statusCode = 415; // Unsupported Media Type
+			res.end();
+			return;
+		}
+
+		readBody(req, MAXOBJSIZE, (err, data) => {
+			if (err) {
+				if (err.message.length) {
+					res.statusCode = err.httpStatusCode;
+					res.setHeader('Content-Type', 'plain/text');
+					res.end(`error: ${err.message}`);
+					return;
+				} else {
+					res.statusCode = err.httpStatusCode;
+					res.end();
+					return;
+				}
+			}
+
+			// parse and normalize
+			let obj;
+			try {
+				obj = JSON.parse(data);
+				data = JSON.stringify(obj);
+			} catch(err) {
+				console.log(err);
+				res.statusCode = 400; // Bad Request
+				res.setHeader('Content-Type', 'plain/text');
+				res.end(`error: ${err.message}`);
+				return;
+			}
+
+			// try to use a filename based on an _id attribute if not in url
+			if (reqFilename.length === 0 && obj.hasOwnProperty('_id') && typeof obj._id === 'string')
+				reqFilename = obj._id
+
+			if (!validFilename(reqFilename)) {
+				res.statusCode = 400;
+				res.setHeader('Content-Type', 'plain/text');
+				res.end(`error: no valid filename in url or _id attribute of JSON body`);
+				return;
+			}
+
+			// stat vs. write race can only lead to incorrect 201 vs. 200 http status code
+			fs.stat(datapath + collectionDir + reqFilename + JSONEXT, (err, stats) => {
+				let alreadyExists = true;
+				if (err) {
+					if (err.code === 'ENOENT') {
+						alreadyExists = false;
+						// continue
+					} else if (err.code === 'EPERM') {
+						res.statusCode = 403;
+						res.end();
+						return;
+					} else {
+						console.error(err);
+						res.statusCode = 500;
+						res.end();
+						return;
+					}
+				}
+
+				if (alreadyExists && req.method === 'POST') {
+					res.statusCode = 409;
+					res.end();
+					return;
+				}
+
+				fs.writeFile(datapath + collectionDir + reqFilename + JSONEXT, data, (err) => {
+					if (err) {
+						if (err.code === 'ENOENT') {
+							console.error('ENOENT %s%s%s', datapath, collectionDir, reqFilename);
+							res.statusCode = 403;
+							res.end();
+							return;
+						} else if (err.code === 'EPERM') {
+							console.error('EPERM %s%s%s', datapath, collectionDir, reqFilename);
+							res.statusCode = 403;
+							res.end();
+							return;
+						} else {
+							console.error('%s%s%s', datapath, collectionDir, reqFilename);
+							console.error(err);
+							res.statusCode = 500;
+							res.end();
+							return;
+						}
+					}
+
+					console.log('written %d bytes to %s%s%s.json', data.length, datapath, collectionDir, reqFilename);
+
+					if (alreadyExists) {
+						res.statusCode = 204;
+					} else {
+						res.statusCode = 201;
+					}
+
+					res.end();
+				});
+			});
+		});
+	} else if (req.method === 'GET') {
+		if (!validFilename(reqFilename)) {
+			res.statusCode = 400;
+			res.setHeader('Content-Type', 'plain/text');
+			res.end('error: invalid filename in url');
+			return;
+		}
+
+		fs.open(datapath + collectionDir + reqFilename + JSONEXT, 'r', (err, fd) => {
+			if (err) {
+				if (err.code === 'ENOENT') {
+					res.statusCode = 404;
+				} else {
+					console.error(err);
+					res.statusCode = 500;
+				}
+
+				res.end();
+				return;
+			}
+
+			fs.fstat(fd, (err, stats) => {
+				if (err) {
+					console.error(err);
+					res.statusCode = 500;
+					res.end();
+					return;
+				}
+
+				const readable = fs.createReadStream(null, { fd: fd });
+
+				readable.once('error', (err) => {
+					console.error(err);
+					res.statusCode = 500;
+					res.end();
+				});
+
+				res.setHeader('Content-Length', stats.size);
+				res.setHeader('Content-Type', 'application/json');
+				readable.pipe(res);
+			});
+		});
+	} else if (req.method === 'DELETE') {
+		if (!validFilename(reqFilename)) {
+			res.statusCode = 400;
+			res.setHeader('Content-Type', 'plain/text');
+			res.end('error: invalid filename in url');
+			return;
+		}
+
+		fs.unlink(datapath + collectionDir + reqFilename + JSONEXT, (err) => {
+			if (err) {
+				if (err.code === 'ENOENT') {
+					res.statusCode = 404;
+				} else if (err.code === 'EPERM') {
+					res.statusCode = 403;
+				} else {
+					console.error(err);
+					res.statusCode = 500;
+				}
+			} else {
+				res.statusCode = 204;
+			}
+
+			res.end();
+		});
+	}
+});
+
+server.listen(PORT, HOST);

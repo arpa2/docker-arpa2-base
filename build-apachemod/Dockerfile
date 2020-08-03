@@ -16,7 +16,7 @@ RUN apt-get install -y automake libtool-bin libpcre3-dev liblmdb-dev lmdb-utils 
 # Install libarpa2common
 
 RUN cd /usr/local/src ; git clone https://gitlab.com/arpa2/libarpa2common.git && \
-    cd libarpa2common && git reset v0.7.1 && \
+    cd libarpa2common && git reset --hard v0.7.1 && \
     mkdir build && cd build && \
     cmake .. -D_have_lmdb:INTERNAL=0 && \
     make && \
