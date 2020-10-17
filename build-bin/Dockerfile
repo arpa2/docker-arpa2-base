@@ -37,9 +37,12 @@ RUN apt-get install -y \
 	#TODO#libgnutls-dev
 
 # Install ARPA2CM
-ADD https://gitlab.com/arpa2/arpa2cm/-/archive/v0.8.0/arpa2cm-v0.8.0.tar.gz /root/arpa2cm-version-0.8.tar.gz
-RUN cd /usr/local/src && tar -xzvf /root/arpa2cm-version-0.8.tar.gz
-RUN cd /usr/local/src/arpa2cm-v0.8.0 && mkdir build && cd build && cmake .. && make all install
+#ADD https://gitlab.com/arpa2/arpa2cm/-/archive/v0.8.0/arpa2cm-v0.8.0.tar.gz /root/arpa2cm-version-0.8.tar.gz
+#RUN cd /usr/local/src && tar -xzvf /root/arpa2cm-version-0.8.tar.gz
+#RUN cd /usr/local/src/arpa2cm-v0.8.0 && mkdir build && cd build && cmake .. && make all install
+RUN cd /usr/local/src && git clone https://gitlab.com/arpa2/arpa2cm.git
+RUN cd /usr/local/src/arpa2cm && mkdir build && cd build && cmake .. && make all install
+
 
 #RUNIT## Install runit-docker (base already holds runit but not activated)
 #RUNIT# RUN git clone https://github.com/arpa2/runit-docker /usr/local/src/runit-docker.git
