@@ -32,24 +32,22 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install dependencies
 # RUN apt-get install -y libdb5.3-dev libgnutls28-dev gnutls-bin libldns-dev
 RUN apt-get install -y \
-	python3-pyparsing python3-six \
+	python3-pyparsing python3-six python3-setuptools python3-dev \
 	gperf
 
 #UNUSED# COPY --from=pip /usr/lib/python3.7/dist-packages/setuptools/ /usr/lib/python3.7/dist-packages/setuptools
 #UNUSED# COPY --from=pip /usr/lib/python3.7/dist-packages/pkg_resources/ /usr/lib/python3.7/dist-packages/pkg_resources
 
 # Install asn1ate
-ADD https://github.com/kimgr/asn1ate/archive/v0.6.tar.gz /root/asn1ate-v0.6.tar.gz
-RUN cd /usr/local/src && tar -xzvf /root/asn1ate-v0.6.tar.gz
-RUN cd /usr/local/src/asn1ate-0.6 && python setup.py install
+RUN python3 /usr/lib/python3/dist-packages/easy_install.py six pyparsing asn1ate
 
-# Install Quick DER
-ADD https://github.com/vanrein/quick-der/archive/version-1.3.0.tar.gz /root/quick-der-version-1.3.0.tar.gz
-RUN cd /usr/local/src && tar -xzvf /root/quick-der-version-1.3.0.tar.gz
-#TODO#PYTHON#SETUP#INCOMPATIBLE#CHANGES# RUN cd /usr/local/src/quick-der-version-1.3.0 && mkdir build && cd build && cmake .. && make all test install
-RUN cd /usr/local/src/quick-der-version-1.3.0 && mkdir build && cd build && cmake .. && make all install
-#TODO# Ugly direct copy:
-RUN cd /usr/local/src/quick-der-version-1.3.0 && cp python/scripts/* /usr/local/bin && cp -r python/quick_der /usr/local/lib/python3.7/dist-packages/quick_der
+# Quick-DER
+RUN git clone https://gitlab.com/arpa2/quick-der/ /usr/local/src/quick-der.git
+RUN mkdir /usr/local/src/quick-der.git/build ; cd /usr/local/src/quick-der.git/build ; cmake -DDEBUG:BOOL=OFF ..	
+RUN make -C /usr/local/src/quick-der.git/build all install	
+RUN python /usr/local/src/quick-der.git/setup.py install	
+RUN python -m easy_install arpa2.quickder_tools	
+RUN python -m easy_install arpa2.quickder	
 
 # Install hexio -- TODO: Temporary branch with experimental derdump.quickder
 RUN cd /usr/local/src ; git clone -b quick-derdump --single-branch \
@@ -58,13 +56,11 @@ RUN cd /usr/local/src/hexio.git ; make hexin hexout ; install hexin hexout derdu
 RUN cp /usr/local/src/hexio.git/README.MD /HEXIO.MD
 
 # Install LillyDAP
-ADD https://github.com/vanrein/lillydap/archive/version-0.9-1.tar.gz /root/lillydap-version-0.9-1.tar.gz
-RUN cd /usr/local/src && tar -xzvf /root/lillydap-version-0.9-1.tar.gz
-RUN cd /usr/local/src/lillydap-version-0.9-1 && mkdir build && cd build && cmake .. && make all test install
+RUN git clone https://gitlab.com/arpa2/lillydap /usr/local/src/lillydap.git
+RUN cd /usr/local/src/lillydap.git && mkdir build && cd build && cmake .. && make all test install
 
 # Trigger library updates
 RUN ldconfig
 
 # Define default command
 CMD ["/bin/bash"]
-
