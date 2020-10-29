@@ -1,6 +1,8 @@
-# README for the ARPA2 Apache Modules
+# README for the ARPA2 Apache Modules #
 
 > *These modules link the Apache Web Server to a number of ARPA2 projects.*
+
+# General setup #
 
 ## Starting ##
 ```
@@ -12,7 +14,22 @@ root@9b0050a13502:/# /etc/init.d/rsyslog start
 root@9b0050a13502:/# tlspool-daemon -kc /etc/tlspool.conf
 root@9b0050a13502:/# apachectl start
 ```
+## On PC: prepare /etc/hosts ##
+```
+127.0.0.1       localhost tlspool.arpa2.lab playground.arpa2.lab
+127.0.1.1       ingrid-linux
 
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+```
+# ACLR demo, inside docker #
+```
+root@9b0050a13502:/# a2dismod sasl
+```
 ## On PC in docker-demo directory ##
 ```
 $ docker cp apache:/usr/local/src/tlspool-0.9.3/testdata/tlspool-test-ca-cert.pem build-apachemod
