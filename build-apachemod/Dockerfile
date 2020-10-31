@@ -4,6 +4,8 @@
 #
 # From: Henri Manson <hfmanson@gmail.com>
 
+# start inside build-apachemod with:
+# mkdir -p apachemod.git; docker run --rm --name apache -p 8000:80 --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --mount type=bind,source="$(pwd)"/apachemod.git,target=/usr/local/src/apachemod.git -it build-apachemod bash
 
 # ARPA2 base image is build-tlspool
 FROM arpa2/build-tlspool AS apache
@@ -23,24 +25,16 @@ RUN cd /usr/local/src ; git clone https://gitlab.com/arpa2/libarpa2common.git &&
     make install && \
     ldconfig
 
-#COPY setup-volume.sh /root
-
-# Build Apache modules
-COPY modules  /usr/local/src/modules
-
 # Copy apache resources
 # HTML files
 COPY /var/www/html /var/www/html
 # configuration files
 COPY /etc/apache2 /etc/apache2
 
-RUN cd /usr/local/src/modules/arpa2_userdir && apxs -i -a -c mod_arpa2_userdir.c
-RUN cd /usr/local/src/modules/arpa2_aclr    && apxs -i -a -c mod_arpa2_aclr.c \
-                                                -larpa2aclr
-RUN cd /usr/local/src/modules/arpa2_tlspool && apxs -i -a -c mod_arpa2_tlspool.c \
-                                                -ltlspool
-RUN cd /usr/local/src/modules/arpa2_sasl && apxs -i -a -c mod_arpa2_sasl.c \
-                                                -lsasl2 -lpcre
+# prepare sasldb2
+RUN echo 1234 | saslpasswd2 -f /etc/sasldb2 -u test-realm.nl henri && \
+	chown www-data:www-data /etc/sasldb2
 
-# Define default command
+COPY setup-volume.sh /root
+RUN echo '. /root/setup-volume.sh' >> /root/.bashrc
 CMD ["/bin/bash"]
